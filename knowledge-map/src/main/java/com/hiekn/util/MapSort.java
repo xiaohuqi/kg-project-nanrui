@@ -14,9 +14,11 @@ public class MapSort {
 		Collections.sort(valueList);
 
 		for(String key : map.keySet()){
-			int i=0;
-			for(;i<valueList.size();i++){
-				if(map.get(key) >= valueList.get(i)){
+			int score = map.get(key);
+			int i = 0;
+			int size = valueList.size();
+			for(;i<size;i++){
+				if(score >= valueList.get(i)){
 					break;
 				}
 			}

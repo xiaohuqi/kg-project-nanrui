@@ -17,7 +17,7 @@ import java.util.*;
 public class MapGenerator {
 	public static void main(String[] args) {
 //		new MapGenerator().process1();
-		new MapGenerator().generate4MapCompute();
+		new MapGenerator().generateCorpus4MapCompute();
 	}
 
 
@@ -150,10 +150,11 @@ public class MapGenerator {
 		return idfMap;
 	}
 
-	public void generate4MapCompute(){
+	public void generateCorpus4MapCompute(){
 		try{
 			ICSegregation segregation = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus.txt")), "utf-8"));
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus1.txt")), "utf-8"));
+			BufferedWriter bw0 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus_doc.txt")), "utf-8"));
 
 			MongoCollection mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "paper");
 			MongoCursor<Document> mongoCursor = mongoCollection.find().iterator();
@@ -196,6 +197,7 @@ public class MapGenerator {
 				}
 				sb.append("\n");
 				bw.write(sb.toString());
+				bw0.write(sb.toString().replaceAll("\n", " ").concat("\n"));
 			}
 			mongoCursor.close();
 

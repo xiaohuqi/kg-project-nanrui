@@ -7,10 +7,7 @@ import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,13 +17,14 @@ import java.util.regex.Pattern;
 public class DicPreprocess {
 
 	public static void main(String[] args) {
-//		System.out.println("doubly-fed wind generators（dfwgs）".replaceAll("[\\(（][^\\(（\\)）]+?[\\)）]", ""));
+//		System.out.println("erp(enterprise resource planning)".replaceAll("[\\(（][^\\(（\\)）]+?[\\)）]", ""));
 
-		generateDicFromPaper(CommonResource.WORK_HOME.concat("dic/process/paper0.dic"));	//第1步
-//		processDic(CommonResource.WORK_HOME.concat("dic/process/paper0.dic"));	//第2步
-//		excludeStopword(CommonResource.WORK_HOME.concat("dic/process/paper0.dic.dic"), CommonResource.WORK_HOME.concat("dic/process/stopword.dic"));	//第3步
+//		generateDicFromPaper(CommonResource.WORK_HOME.concat("dic/process/paper1.dic"));	//第1步
+//		processDic(CommonResource.WORK_HOME.concat("dic/process/paper1.dic"));	//第2步
+		excludeStopword(CommonResource.WORK_HOME.concat("dic/process/paper1.dic.dic"), CommonResource.WORK_HOME.concat("dic/process/stopword.dic"));	//第3步
 //		compareDic("D:/work/nanrui/dic/paper.dic", "D:/work/nanrui/dic/process/paper.dic.dic", "D:/work/nanrui/dic/process/stopword.dic");
-//		deleteUnEnWords(CommonResource.WORK_HOME.concat("dic/paper.dic"), CommonResource.WORK_HOME.concat("dic/english/en.dic"));	//第4步
+//		deleteUnEnWords(CommonResource.WORK_HOME.concat("dic/process/paper0.dic.dic.dic"), CommonResource.WORK_HOME.concat("dic/english/en.dic"));	//
+
 
 //		extracEnDic();
 	}
@@ -55,6 +53,12 @@ public class DicPreprocess {
 				}
 
 				line = line.replaceAll("[\\(（][^\\(（\\)）]+?[\\)）]", "").trim(); //去除括号中内容
+				if(line.contains("(")){
+					line = line.substring(0, line.indexOf("(")).trim();
+					if(line.length() < 2){
+						continue;
+					}
+				}
 
 				if(line.startsWith("“") && line.endsWith("”")){
 					line = line.substring(1);
@@ -189,7 +193,7 @@ public class DicPreprocess {
 
 	public static void generateDicFromPaper(String dicPath){
 		try{
-			Set<String> set = new HashSet<String>();
+			Map<String, Integer> map = new HashMap<String, Integer>();
 			MongoCollection mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "paper");
 			MongoCursor<Document> mongoCursor = mongoCollection.find().iterator();
 			while(mongoCursor.hasNext()){
@@ -197,7 +201,8 @@ public class DicPreprocess {
 				if(document.containsKey("keywords")) {
 					List<String> keywords = (List<String>) document.get("keywords");
 					for(String word : keywords){
-						set.add(word.toLowerCase());
+						word = word.toLowerCase();
+						map.put(word, map.containsKey(word) ? 1 + map.get(word) : 1);
 					}
 //					System.out.println(keywords.size());
 				}
@@ -207,7 +212,8 @@ public class DicPreprocess {
 						if(document1.containsKey("interests")){
 							List<String> keywords = (List<String>) document1.get("interests");
 							for(String word : keywords){
-								set.add(word.toLowerCase());
+								word = word.toLowerCase();
+								map.put(word, map.containsKey(word) ? 1 + map.get(word) : 1);
 							}
 						}
 					}
@@ -215,13 +221,40 @@ public class DicPreprocess {
 				}
 			}
 			mongoCursor.close();
-			System.out.println(set.size());
+			System.out.println(map.size());
 
 			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dicPath), "utf-8"));
-			for(String word : set){
-				bw.write(word.concat("\n"));
+			for(String word : map.keySet()){
+				if(map.get(word) > 1) {
+					bw.write(word.concat("\n"));
+				}
 			}
 			bw.close();
+
+//			int c = 0;
+//			Map<String, Integer> map0 = new HashMap<String, Integer>();
+//			for(String word : map.keySet()){
+////				if(map.get(word) >= 10){
+////					System.out.println(word);
+////					++ c;
+////				}
+//				if(word.length() == word.getBytes("utf-8").length){
+//					map0.put(word, map.get(word));
+//					if(map.get(word) == 3){
+//						System.out.println(word);
+//						++ c;
+//					}
+//				}
+//			}
+//			System.out.println(c);
+//
+//			MapSort mapSort = new MapSort();
+//			List<String> keyList = new ArrayList<String>();
+//			List<Integer> valueList = new ArrayList<Integer>();
+//			mapSort.sortIntegerValueMap(map0, keyList, valueList);
+//			for(int i=0;i<keyList.size();i++){
+////				System.out.println(keyList.get(i) + "\t" + valueList.get(i));
+//			}
 		}catch (Exception e){
 			e.printStackTrace();
 		}
@@ -251,7 +284,7 @@ public class DicPreprocess {
 				if(line.equals("")){
 					continue;
 				}
-				if(line.length() == line.getBytes("utf-8").length && !enSet.contains(line)){
+				if(line.length() == line.getBytes("utf-8").length && !line.contains(" ") && !enSet.contains(line)){
 					continue;
 				}
 				set.add(line);
