@@ -1,11 +1,14 @@
 package com.hiekn.work;
 
 import com.data0123.common.util.file.ReadFileUtil;
+import com.hiekn.util.CommonResource;
 import com.hiekn.util.MapSort;
+import com.hiekn.util.MongoDBConnectionUtil;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import org.bson.Document;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -13,8 +16,10 @@ import java.util.*;
  **/
 public class MapGenerator {
 	public static void main(String[] args) {
-		new MapGenerator().process1();
+//		new MapGenerator().process1();
+		new MapGenerator().generate4MapCompute();
 	}
+
 
 	public void process(String input, ICSegregation seg, Map<String, Double> idfMap, int outputSize){
 
@@ -143,5 +148,89 @@ public class MapGenerator {
 			}
 		}
 		return idfMap;
+	}
+
+	public void generate4MapCompute(){
+		try{
+			ICSegregation segregation = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus.txt")), "utf-8"));
+
+			MongoCollection mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "paper");
+			MongoCursor<Document> mongoCursor = mongoCollection.find().iterator();
+			while(mongoCursor.hasNext()){
+				Document document = mongoCursor.next();
+				StringBuilder sb = new StringBuilder();
+				if(document.containsKey("keywords")) {
+					List<String> keywords = (List<String>) document.get("keywords");
+					for(String word : keywords){
+						sb.append(word.toLowerCase()).append(" ");
+					}
+//					System.out.println(keywords.size());
+				}
+				if(document.containsKey("authors")) {
+					List<Document> authors = (List<Document>) document.get("authors");
+					for(Document document1 : authors){
+						if(document1.containsKey("interests")){
+							List<String> keywords = (List<String>) document1.get("interests");
+							for(String word : keywords){
+								sb.append(word.toLowerCase()).append(" ");
+							}
+						}
+					}
+				}
+				sb.append("\n");
+				if(document.containsKey("title")){
+					String title = document.getString("title");
+					List<String> wordList = segregation.segregate2(title.toLowerCase());
+					for(String word : wordList){
+						sb.append(word).append(" ");
+					}
+				}
+				sb.append("\n");
+				if(document.containsKey("abstract")){
+					String abstract0 = document.getString("abstract");
+					List<String> wordList = segregation.segregate2(abstract0.toLowerCase());
+					for(String word : wordList){
+						sb.append(word).append(" ");
+					}
+				}
+				sb.append("\n");
+				bw.write(sb.toString());
+			}
+			mongoCursor.close();
+
+			mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "patent");
+			mongoCursor = mongoCollection.find().iterator();
+			while(mongoCursor.hasNext()){
+				Document document = mongoCursor.next();
+				StringBuilder sb = new StringBuilder();
+				if(document.containsKey("title")){
+					Document titleDoc = (Document)document.get("title");
+					if(titleDoc.containsKey("original")){
+						List<String> wordList = segregation.segregate2(titleDoc.getString("original").toLowerCase());
+						for(String word : wordList){
+							sb.append(word).append(" ");
+						}
+					}
+				}
+				sb.append("\n");
+				if(document.containsKey("abstract")){
+					Document absDoc = (Document)document.get("abstract");
+					if(absDoc.containsKey("original")){
+						List<String> wordList = segregation.segregate2(absDoc.getString("original").toLowerCase());
+						for(String word : wordList){
+							sb.append(word).append(" ");
+						}
+					}
+				}
+				sb.append("\n");
+				bw.write(sb.toString());
+			}
+			mongoCursor.close();
+
+			bw.close();
+		}catch (Exception e){
+			e.printStackTrace();
+		}
 	}
 }
