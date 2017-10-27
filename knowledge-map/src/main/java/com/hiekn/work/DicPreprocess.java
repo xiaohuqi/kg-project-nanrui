@@ -22,13 +22,15 @@ public class DicPreprocess {
 	public static void main(String[] args) {
 //		System.out.println("doubly-fed wind generators（dfwgs）".replaceAll("[\\(（][^\\(（\\)）]+?[\\)）]", ""));
 
-//		processDic(CommonResource.WORK_HOME.concat("dic/process/paper0.dic"));
-//		excludeStopword(CommonResource.WORK_HOME.concat("dic/process/paper0.dic.dic"), CommonResource.WORK_HOME.concat("dic/process/stopword.dic"));
+		generateDicFromPaper(CommonResource.WORK_HOME.concat("dic/process/paper0.dic"));	//第1步
+//		processDic(CommonResource.WORK_HOME.concat("dic/process/paper0.dic"));	//第2步
+//		excludeStopword(CommonResource.WORK_HOME.concat("dic/process/paper0.dic.dic"), CommonResource.WORK_HOME.concat("dic/process/stopword.dic"));	//第3步
 //		compareDic("D:/work/nanrui/dic/paper.dic", "D:/work/nanrui/dic/process/paper.dic.dic", "D:/work/nanrui/dic/process/stopword.dic");
-//		generateDicFromPaper(CommonResource.WORK_HOME.concat("dic/process/paper0.dic"));
+//		deleteUnEnWords(CommonResource.WORK_HOME.concat("dic/paper.dic"), CommonResource.WORK_HOME.concat("dic/english/en.dic"));	//第4步
 
-		findShortEnWords(CommonResource.WORK_HOME.concat("dic/paper.dic"), 2);
+//		extracEnDic();
 	}
+
 
 
 	public static void processDic(String dicPath){
@@ -225,24 +227,124 @@ public class DicPreprocess {
 		}
 	}
 
-	public static void findShortEnWords(String dicFilePath, int len){
+	public static void deleteUnEnWords(String dicFilePath, String enDicFilePath){
 		try{
-			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(dicFilePath), "utf-8"));
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(enDicFilePath), "utf-8"));
 			String line = null;
-			Set<String> set = new HashSet<String>();
+			Set<String> enSet = new HashSet<String>();
 
 			while((line = br.readLine()) != null){
-				if(set.contains(line)){
+				if(enSet.contains(line)){
 					System.out.println(line);
 				}
-				set.add(line);
+				enSet.add(line);
 //				if(line.length() == len && line.length() == line.getBytes("utf-8").length){
 //					System.out.println(line);
 //				}
 			}
-
 			br.close();
+
+			Set<String> set = new HashSet<String>();
+			br = new BufferedReader(new InputStreamReader(new FileInputStream(dicFilePath), "utf-8"));
+			while((line = br.readLine()) != null){
+				line = line.trim();
+				if(line.equals("")){
+					continue;
+				}
+				if(line.length() == line.getBytes("utf-8").length && !enSet.contains(line)){
+					continue;
+				}
+				set.add(line);
+			}
+			br.close();;
+			System.out.println(set.size());
+
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dicFilePath.concat(".dic")), "utf-8"));
+			for(String word : set){
+				bw.write(word.concat("\n"));
+			}
+			bw.close();
+
 		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	public static void extracEnDic(){
+		try{
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream("D:\\work\\nanrui\\dic\\english\\英汉词典.txt"), "utf-8"));
+			String line = null;
+			Set<String> set = new HashSet<String>();
+
+			while((line = br.readLine()) != null){
+				line = line.trim();
+				if(line.length() < 2){
+					continue;
+				}
+				int p = line.indexOf("   ");
+				if(p == -1){
+					p = line.indexOf(" ");
+				}
+				String word = line.substring(0, p);
+				if(set.contains(word)){
+					System.out.println(word);
+				}
+				set.add(word);
+			}
+			br.close();
+			System.out.println(set.size());
+
+			br = new BufferedReader(new InputStreamReader(new FileInputStream("D:\\work\\nanrui\\dic\\english\\官方英语单词.txt"), "utf-8"));
+			while((line = br.readLine()) != null) {
+				line = line.trim();
+				if (line.length() < 2) {
+					continue;
+				}
+				if(line.matches("[\\s\\S]*\\([,\\. a-z]+?\\)[\\s\\S]*")){
+//					if(line.indexOf(" ") == -1)
+//					System.out.println(line);
+					set.add(line.substring(0, line.indexOf(" ")));
+
+					Pattern p = Pattern.compile("\\([,\\. a-z]+?\\)");
+					Matcher m = p.matcher(line);
+					if(m.find()){
+						String words = m.group();
+						words = words.substring(1);
+						words = words.substring(0, words.length() - 1);
+						if(words.length() > 1){
+							if(words.startsWith("pl.")){
+								words = words.substring(3).trim();
+							}
+							String wa[] = words.split(",");
+							for(String word : wa){
+								word = word.trim();
+								if(!word.equals("")){
+									set.add(word);
+								}
+							}
+						}
+					}
+				}
+				else{
+					int p = line.indexOf(" ");
+					if(p != -1){
+						set.add(line.substring(0, p));
+					}
+				}
+
+			}
+			br.close();
+			System.out.println(set.size());
+
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("D:\\work\\nanrui\\dic\\english\\en.dic"), "utf-8"));
+			for(String word : set){
+				if(word.contains("(")){
+					System.out.println(word);
+				}
+				bw.write(word.concat("\n"));
+			}
+			bw.close();
+		}catch (Exception e){
 			e.printStackTrace();
 		}
 	}
