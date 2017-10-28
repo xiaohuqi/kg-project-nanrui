@@ -227,10 +227,12 @@ public class MapGenerator {
 				}
 				sb.append("\n");
 				bw.write(sb.toString());
+				bw0.write(sb.toString().replaceAll("\n", " ").concat("\n"));
 			}
 			mongoCursor.close();
 
 			bw.close();
+			bw0.close();
 		}catch (Exception e){
 			e.printStackTrace();
 		}

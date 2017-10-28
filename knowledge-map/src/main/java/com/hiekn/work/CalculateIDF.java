@@ -24,7 +24,7 @@ public class CalculateIDF {
 		try{
 			ICSegregation segregation = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
 
-			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CommonResource.WORK_HOME.concat("corpus/corpus_doc.txt")), "utf-8"));
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CommonResource.WORK_HOME.concat("kmap/corpus_doc.txt")), "utf-8"));
 			String line = null;
 			Set<String> wSet = new HashSet<String>();
 			Map<String, Integer> map = new HashMap<String, Integer>();
