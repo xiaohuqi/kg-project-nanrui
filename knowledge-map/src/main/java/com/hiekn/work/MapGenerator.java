@@ -9,7 +9,10 @@ import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author xiaohuqi@126.com 2017-10-26 10:07
@@ -17,61 +20,101 @@ import java.util.*;
 public class MapGenerator {
 	public static void main(String[] args) {
 //		new MapGenerator().process1();
-		new MapGenerator().generateCorpus4MapCompute();
+//		new MapGenerator().generateCorpus4MapCompute();
+
+		MapGenerator mapGenerator = new MapGenerator();
+		ICSegregation seg = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
+		List<String> dicPathList = new ArrayList<String>();
+		dicPathList.add(CommonResource.WORK_HOME.concat("dic/idf/idf0.dic"));
+		dicPathList.add(CommonResource.WORK_HOME.concat("dic/idf/idf_1.dic"));
+		Map<String, Double> idfMap = mapGenerator.readIdfDic(dicPathList);
+
+		ReadFileUtil readFileUtil = new ReadFileUtil();
+		for(int i=1;i<=12;i++){
+			StringBuilder sb = new StringBuilder();
+			List<String> dirList = new ArrayList<String>();
+			dirList.add("D:\\work\\nanrui\\map\\doc\\" + i);
+			for(int d=0;d<dirList.size();d++){
+				for(File file : new File(dirList.get(d)).listFiles()){
+					if(file.isFile()){
+						sb.append(readFileUtil.readFileByCharSet(file.getAbsolutePath(), "utf-8")).append("\n");
+						System.out.println(file.getAbsolutePath());
+					}
+					else{
+						dirList.add(file.getAbsolutePath());
+					}
+				}
+			}
+			mapGenerator.process(sb.toString(), seg, idfMap, 100, "D:\\work\\nanrui\\map\\doc\\map" + i + ".txt");
+
+		}
 	}
 
-
-	public void process(String input, ICSegregation seg, Map<String, Double> idfMap, int outputSize){
-
-		Map<String, Integer> map = new HashMap<String, Integer>();
-		List<String> wordList = seg.segregate2(input);
-		System.out.println(wordList.size());
-		for(String word : wordList){
-//			System.out.println(word);
-			map.put(word, map.containsKey(word) ? 1 + map.get(word) : 1);
-		}
-
-		Map<String, Double> scoreMap = new HashMap<String, Double>();
-
-		for(String word : map.keySet()){
-			double score = 13.1;
-			if(idfMap.containsKey(word)){
-				score = idfMap.get(word);
-			}
-			scoreMap.put(word, (1 + map.get(word) * Math.pow(score, 3) / 10000));
-		}
-
-
-		MapSort mapSort = new MapSort();
-		List<String> keyList = new ArrayList<String>();
-		List<Double> valueList = new ArrayList<Double>();
-		mapSort.sortDoubleValueMap(scoreMap, keyList, valueList);
-
-		for(int i=0;i<outputSize;i++){
-			if(valueList.get(i) < 1){
-				break;
-			}
-			String word = keyList.get(i);
-			if(word.length() < 2){
-				continue;
+	public void process(String input, ICSegregation seg, Map<String, Double> idfMap, int outputSize, String outputFilePath){
+		try {
+			Map<String, Integer> map = new HashMap<String, Integer>();
+			List<String> wordList = seg.segregate2(input);
+			System.out.println(wordList.size());
+			for (String word : wordList) {
+				//			System.out.println(word);
+				map.put(word, map.containsKey(word) ? 1 + map.get(word) : 1);
 			}
 
-			List<String> longWordList = new ArrayList<String>();
-			int max = Math.min(outputSize*5, keyList.size());
-			for(int j=0;j<max;j++){
-				if(i == j){
+			Map<String, Double> scoreMap = new HashMap<String, Double>();
+
+			for (String word : map.keySet()) {
+				double score = 15;
+				if (idfMap.containsKey(word)) {
+					score = idfMap.get(word);
+				}
+				scoreMap.put(word, (1 + map.get(word) * Math.pow(score, 4) / 100000));
+			}
+
+
+			MapSort mapSort = new MapSort();
+			List<String> keyList = new ArrayList<String>();
+			List<Double> valueList = new ArrayList<Double>();
+			mapSort.sortDoubleValueMap(scoreMap, keyList, valueList);
+
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < outputSize; i++) {
+				StringBuilder sb0 = new StringBuilder();
+				if (valueList.get(i) < 1) {
+					break;
+				}
+				String word = keyList.get(i);
+				if (word.length() < 2) {
 					continue;
 				}
-				if(keyList.get(j).contains(word)){
-					longWordList.add(keyList.get(j));
-				}
-			}
-			System.out.print(word + "\t" + valueList.get(i) + "\t");
-			for(String longWord : longWordList){
-				System.out.print("\t" + longWord);
-			}
 
-			System.out.println();
+				List<String> longWordList = new ArrayList<String>();
+				int max = Math.min(outputSize * 5, keyList.size());
+				for (int j = 0; j < max; j++) {
+					if (i == j) {
+						continue;
+					}
+					if (keyList.get(j).contains(word)) {
+						longWordList.add(keyList.get(j));
+					}
+				}
+
+				sb0.append(word).append("\t").append(valueList.get(i)).append("\t");
+//				System.out.print(word + "\t" + valueList.get(i) + "\t");
+				for (String longWord : longWordList) {
+//					System.out.print("\t" + longWord);
+					sb0.append("\t").append(longWord);
+				}
+				sb0.append("\n");
+				System.out.println(sb0.toString());
+				sb.append(sb0);
+			}
+			if(outputFilePath != null) {
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFilePath), "utf-8"));
+				bw.write(sb.toString());
+				bw.close();
+			}
+		}catch (Exception e){
+			e.printStackTrace();
 		}
 	}
 
@@ -141,7 +184,12 @@ public class MapGenerator {
 				while ((line = br.readLine()) != null) {
 					line = line.trim();
 					int p = line.indexOf('\t');
-					idfMap.put(line.substring(0, p), Double.valueOf(line.substring(1 + p)));
+					String word = line.substring(0, p);
+					Double score = Double.valueOf(line.substring(1 + p));
+					if(word.matches("\\d+")){
+						score = score / 5;
+					}
+					idfMap.put(word, score);
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -227,12 +275,10 @@ public class MapGenerator {
 				}
 				sb.append("\n");
 				bw.write(sb.toString());
-				bw0.write(sb.toString().replaceAll("\n", " ").concat("\n"));
 			}
 			mongoCursor.close();
 
 			bw.close();
-			bw0.close();
 		}catch (Exception e){
 			e.printStackTrace();
 		}
