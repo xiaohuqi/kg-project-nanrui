@@ -7,9 +7,14 @@ import com.data0123.common.util.file.WriteFileUtil;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 类说明
@@ -19,8 +24,45 @@ import java.util.List;
 public class BaikeDataProcess {
 	private static final String WORK_DIR = "d:/work/nanrui/baike/";
 
-	public static void main(String[] args) {
 
+	public static void main(String[] args) {
+		System.out.println(Integer.toHexString('窄'));
+		System.out.println("窄".matches("[\\u4e00-\\u9fa5]"));
+		try{
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(WORK_DIR + "text.txt"), "utf-8"));
+			String line = null;
+			while((line = br.readLine()) != null){
+				String[] ta = line.split("[，。、；：]");
+				for(String sentense : ta) {
+					Pattern p = Pattern.compile("（[a-z ]{3,}）");
+					Matcher m = p.matcher(sentense);
+
+					int start = 0;
+					while(m.find()) {
+						String matchStr = m.group();
+						int bp = m.start();
+
+						String candidate = sentense.substring(start, bp);
+						int charNo = (int)candidate.charAt(candidate.length() - 1);
+						if(charNo < 19968 || charNo > 40869){
+							System.out.println(candidate + "\t" + matchStr);
+						}
+
+
+
+						start = m.end();
+					}
+				}
+
+			}
+			br.close();
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+
+	}
+
+	public static void parseBaikeJson(){
 		IReadFileUtil readFileUtil = new ReadFileUtil();
 
 		StringBuilder stringBuilder = new StringBuilder();
