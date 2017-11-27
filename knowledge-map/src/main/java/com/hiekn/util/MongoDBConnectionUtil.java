@@ -8,7 +8,7 @@ import org.bson.Document;
 
 /**
  * @author xiaohuqi@126.com
- * @create 2017-06-19 22:32
+ * @cre 2017-06-19 22:32
  **/
 public class MongoDBConnectionUtil {
     private static MongoClient mongoClient = null;

@@ -24,16 +24,19 @@ public class MapGenerator {
 
 		MapGenerator mapGenerator = new MapGenerator();
 		ICSegregation seg = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
-		List<String> dicPathList = new ArrayList<String>();
+		List<String> dicPathList = new ArrayList<>();
 		dicPathList.add(CommonResource.WORK_HOME.concat("dic/idf/idf0.dic"));
 		dicPathList.add(CommonResource.WORK_HOME.concat("dic/idf/idf_1.dic"));
 		Map<String, Double> idfMap = mapGenerator.readIdfDic(dicPathList);
 
 		ReadFileUtil readFileUtil = new ReadFileUtil();
-		for(int i=1;i<=12;i++){
+
+		File[] files = new File("D:\\work\\nanrui\\kmap\\book\\").listFiles();
+
+		for(File dir : files){
 			StringBuilder sb = new StringBuilder();
 			List<String> dirList = new ArrayList<String>();
-			dirList.add("D:\\work\\nanrui\\map\\doc\\" + i);
+			dirList.add(dir.getAbsolutePath());
 			for(int d=0;d<dirList.size();d++){
 				for(File file : new File(dirList.get(d)).listFiles()){
 					if(file.isFile()){
@@ -45,14 +48,14 @@ public class MapGenerator {
 					}
 				}
 			}
-			mapGenerator.process(sb.toString(), seg, idfMap, 100, "D:\\work\\nanrui\\map\\doc\\map" + i + ".txt");
+			mapGenerator.process(sb.toString(), seg, idfMap, 500, dir.getAbsolutePath() + ".txt");
 
 		}
 	}
 
 	public void process(String input, ICSegregation seg, Map<String, Double> idfMap, int outputSize, String outputFilePath){
 		try {
-			Map<String, Integer> map = new HashMap<String, Integer>();
+			Map<String, Integer> map = new HashMap<>();
 			List<String> wordList = seg.segregate2(input);
 			System.out.println(wordList.size());
 			for (String word : wordList) {
@@ -60,7 +63,7 @@ public class MapGenerator {
 				map.put(word, map.containsKey(word) ? 1 + map.get(word) : 1);
 			}
 
-			Map<String, Double> scoreMap = new HashMap<String, Double>();
+			Map<String, Double> scoreMap = new HashMap<>();
 
 			for (String word : map.keySet()) {
 				double score = 15;
@@ -72,8 +75,8 @@ public class MapGenerator {
 
 
 			MapSort mapSort = new MapSort();
-			List<String> keyList = new ArrayList<String>();
-			List<Double> valueList = new ArrayList<Double>();
+			List<String> keyList = new ArrayList<>();
+			List<Double> valueList = new ArrayList<>();
 			mapSort.sortDoubleValueMap(scoreMap, keyList, valueList);
 
 			StringBuilder sb = new StringBuilder();
