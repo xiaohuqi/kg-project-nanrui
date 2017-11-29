@@ -1,5 +1,6 @@
 package com.hiekn.work;
 
+import com.data0123.common.util.CommonUtil;
 import com.data0123.common.util.file.IReadFileUtil;
 import com.data0123.common.util.file.IWriteFileUtil;
 import com.data0123.common.util.file.ReadFileUtil;
@@ -23,11 +24,13 @@ import java.util.regex.Pattern;
  **/
 public class BaikeDataProcess {
 	private static final String WORK_DIR = "d:/work/nanrui/baike/";
+	private static final String CHAR_REGEX = "[\\u4e00-\\u9fa5a-zA-Z0-9]";
 
 
 	public static void main(String[] args) {
-		System.out.println(Integer.toHexString('窄'));
-		System.out.println("窄".matches("[\\u4e00-\\u9fa5]"));
+		CommonUtil commonUtil = new CommonUtil();
+		System.out.println(Integer.toHexString('A'));
+		System.out.println("a".matches(""));
 		try{
 			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(WORK_DIR + "text.txt"), "utf-8"));
 			String line = null;
@@ -43,11 +46,34 @@ public class BaikeDataProcess {
 						int bp = m.start();
 
 						String candidate = sentense.substring(start, bp);
-						int charNo = (int)candidate.charAt(candidate.length() - 1);
-						if(charNo < 19968 || charNo > 40869){
-							System.out.println(candidate + "\t" + matchStr);
-						}
+//						candidate = commonUtil
+						String str = candidate.substring(candidate.length() - 1);
+						if(str.matches(CHAR_REGEX)){
 
+						}
+						else{
+							if(candidate.endsWith("”")){
+								int tp = candidate.lastIndexOf("“");
+								candidate = candidate.substring(tp + 1, candidate.length() - 1);
+
+							}
+							else if(candidate.endsWith(".")){
+								int end=candidate.length()-2;
+								for(;end>=0;end--){
+									if(!candidate.substring(end, end + 1).matches("[a-zA-Z0-9]")){
+										break;
+									}
+
+								}
+								candidate = candidate.substring(end + 1);
+
+
+							}
+							else{
+								System.out.println(candidate + "\t" + matchStr);
+							}
+//							System.out.println(candidate + "\t" + matchStr);
+						}
 
 
 						start = m.end();
