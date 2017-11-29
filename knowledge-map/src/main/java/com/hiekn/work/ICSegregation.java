@@ -102,7 +102,7 @@ public class ICSegregation {
 	}
 	
 	public synchronized List<String> segregate2(String input){
-		List<String> wordList = new ArrayList<String>();
+		List<String> wordList = new ArrayList<>();
 		try{			
 			Set<String> workSet = new HashSet<String>();	//工作表中记录的是前缀表中包含的记录
 			Set<String> tempSet = new HashSet<String>();	//临时表中记录的是一次工作过程中生成的临时前缀	

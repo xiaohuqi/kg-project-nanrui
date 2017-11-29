@@ -3,10 +3,6 @@ package com.hiekn.work;
 import com.data0123.common.util.file.ReadFileUtil;
 import com.hiekn.util.CommonResource;
 import com.hiekn.util.MapSort;
-import com.hiekn.util.MongoDBConnectionUtil;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import org.bson.Document;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -20,8 +16,12 @@ import java.util.Map;
 public class MapGenerator {
 	public static void main(String[] args) {
 //		new MapGenerator().process1();
-//		new MapGenerator().generateCorpus4MapCompute();
+		new MapGenerator().generateCorpus4MapCompute();
 
+//		new MapGenerator().genKnowledgeMap();
+	}
+
+	public void genKnowledgeMap(){
 		MapGenerator mapGenerator = new MapGenerator();
 		ICSegregation seg = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
 		List<String> dicPathList = new ArrayList<>();
@@ -35,7 +35,7 @@ public class MapGenerator {
 
 		for(File dir : files){
 			StringBuilder sb = new StringBuilder();
-			List<String> dirList = new ArrayList<String>();
+			List<String> dirList = new ArrayList<>();
 			dirList.add(dir.getAbsolutePath());
 			for(int d=0;d<dirList.size();d++){
 				for(File file : new File(dirList.get(d)).listFiles()){
@@ -124,7 +124,7 @@ public class MapGenerator {
 	public void process1(){
 		ICSegregation seg = new ICSegregation("D:\\work\\guowang\\dic");
 
-		Map<String, Integer> map = new HashMap<String, Integer>();
+		Map<String, Integer> map = new HashMap<>();
 		String input = new ReadFileUtil().readFileByCharSet("D:\\work\\guowang\\zhinan\\2017.txt", "utf-8");
 		List<String> wordList = seg.segregate2(input);
 		System.out.println(wordList.size());
@@ -201,87 +201,122 @@ public class MapGenerator {
 		return idfMap;
 	}
 
+	/**
+	 * 生成Word2Vector 的语料
+	 */
 	public void generateCorpus4MapCompute(){
 		try{
 			ICSegregation segregation = new ICSegregation(CommonResource.WORK_HOME.concat("dic"));
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus1.txt")), "utf-8"));
-			BufferedWriter bw0 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus_doc.txt")), "utf-8"));
 
-			MongoCollection mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "paper");
-			MongoCursor<Document> mongoCursor = mongoCollection.find().iterator();
-			while(mongoCursor.hasNext()){
-				Document document = mongoCursor.next();
-				StringBuilder sb = new StringBuilder();
-				if(document.containsKey("keywords")) {
-					List<String> keywords = (List<String>) document.get("keywords");
-					for(String word : keywords){
-						sb.append(word.toLowerCase()).append(" ");
-					}
-//					System.out.println(keywords.size());
-				}
-				if(document.containsKey("authors")) {
-					List<Document> authors = (List<Document>) document.get("authors");
-					for(Document document1 : authors){
-						if(document1.containsKey("interests")){
-							List<String> keywords = (List<String>) document1.get("interests");
-							for(String word : keywords){
-								sb.append(word.toLowerCase()).append(" ");
-							}
-						}
-					}
-				}
-				sb.append("\n");
-				if(document.containsKey("title")){
-					String title = document.getString("title");
-					List<String> wordList = segregation.segregate2(title.toLowerCase());
+			BufferedWriter bw1 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus_baike.txt")), "utf-8"));
+
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CommonResource.WORK_HOME.concat("baike/text.txt")), "utf-8"));
+			String line;
+			StringBuilder articleBuilder = new StringBuilder();
+			StringBuilder sb = new StringBuilder();
+			while((line = br.readLine()) != null){
+				if(line.equals("**********")){
+					List<String> wordList = segregation.segregate2(articleBuilder.toString().toLowerCase());
 					for(String word : wordList){
 						sb.append(word).append(" ");
 					}
-				}
-				sb.append("\n");
-				if(document.containsKey("abstract")){
-					String abstract0 = document.getString("abstract");
-					List<String> wordList = segregation.segregate2(abstract0.toLowerCase());
-					for(String word : wordList){
-						sb.append(word).append(" ");
-					}
-				}
-				sb.append("\n");
-				bw.write(sb.toString());
-				bw0.write(sb.toString().replaceAll("\n", " ").concat("\n"));
-			}
-			mongoCursor.close();
+					bw1.write(sb.toString().concat("\n"));
 
-			mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "patent");
-			mongoCursor = mongoCollection.find().iterator();
-			while(mongoCursor.hasNext()){
-				Document document = mongoCursor.next();
-				StringBuilder sb = new StringBuilder();
-				if(document.containsKey("title")){
-					Document titleDoc = (Document)document.get("title");
-					if(titleDoc.containsKey("original")){
-						List<String> wordList = segregation.segregate2(titleDoc.getString("original").toLowerCase());
-						for(String word : wordList){
-							sb.append(word).append(" ");
-						}
-					}
+					articleBuilder.setLength(0);
+					sb.setLength(0);
 				}
-				sb.append("\n");
-				if(document.containsKey("abstract")){
-					Document absDoc = (Document)document.get("abstract");
-					if(absDoc.containsKey("original")){
-						List<String> wordList = segregation.segregate2(absDoc.getString("original").toLowerCase());
-						for(String word : wordList){
-							sb.append(word).append(" ");
-						}
-					}
-				}
-				sb.append("\n");
-				bw.write(sb.toString());
+				articleBuilder.append(line).append(" ");
 			}
-			mongoCursor.close();
 
-			bw.close();
+			bw1.close();
+
+//			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus1.txt")), "utf-8"));
+//			BufferedWriter bw0 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CommonResource.WORK_HOME.concat("kmap/corpus_doc.txt")), "utf-8"));
+//
+//			MongoCollection mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "paper");
+//			MongoCursor<Document> mongoCursor = mongoCollection.find().iterator();
+//			while(mongoCursor.hasNext()){
+//				Document document = mongoCursor.next();
+//				StringBuilder sb = new StringBuilder();
+//				if(document.containsKey("keywords")) {
+//					List<String> keywords = (List<String>) document.get("keywords");
+//					for(String word : keywords){
+//						sb.append(word.toLowerCase()).append(" ");
+//					}
+////					System.out.println(keywords.size());
+//				}
+//				if(document.containsKey("authors")) {
+//					List<Document> authors = (List<Document>) document.get("authors");
+//					for(Document document1 : authors){
+//						if(document1.containsKey("interests")){
+//							List<String> keywords = (List<String>) document1.get("interests");
+//							for(String word : keywords){
+//								sb.append(word.toLowerCase()).append(" ");
+//							}
+//						}
+//					}
+//				}
+//				sb.append("\n");
+//				if(document.containsKey("title")){
+//					String title = document.getString("title");
+//					List<String> wordList = segregation.segregate2(title.toLowerCase());
+//					for(String word : wordList){
+//						sb.append(word).append(" ");
+//					}
+//				}
+//				sb.append("\n");
+//				if(document.containsKey("abstract")){
+//					String abstract0 = document.getString("abstract");
+//					List<String> wordList = segregation.segregate2(abstract0.toLowerCase());
+//					for(String word : wordList){
+//						sb.append(word).append(" ");
+//					}
+//				}
+//				sb.append("\n");
+//				bw.write(sb.toString());
+//				bw0.write(sb.toString().replaceAll("\n", " ").concat("\n"));
+//			}
+//			mongoCursor.close();
+//
+//			System.out.println("paper finished...");
+//
+//			int c = 0;
+//			mongoCollection = MongoDBConnectionUtil.getMongoCollection("source_data", "patent");
+//			mongoCursor = mongoCollection.find().iterator();
+//			while(mongoCursor.hasNext()){
+//				Document document = mongoCursor.next();
+//				StringBuilder sb = new StringBuilder();
+//				if(document.containsKey("title")){
+//					Document titleDoc = (Document)document.get("title");
+//					if(titleDoc.containsKey("original")){
+//						List<String> wordList = segregation.segregate2(titleDoc.getString("original").toLowerCase());
+//						for(String word : wordList){
+//							sb.append(word).append(" ");
+//						}
+//					}
+//				}
+//				sb.append("\n");
+//				if(document.containsKey("abstract")){
+//					Document absDoc = (Document)document.get("abstract");
+//					if(absDoc.containsKey("original")){
+//						List<String> wordList = segregation.segregate2(absDoc.getString("original").toLowerCase());
+//						for(String word : wordList){
+//							sb.append(word).append(" ");
+//						}
+//					}
+//				}
+//				sb.append("\n");
+//				bw.write(sb.toString());
+//				bw0.write(sb.toString().replaceAll("\n", " ").concat("\n"));
+//
+//				if(++ c % 10000 == 0){
+//					System.out.println(c);
+//				}
+//			}
+//			mongoCursor.close();
+//
+//			bw.close();
+//			bw0.close();
 		}catch (Exception e){
 			e.printStackTrace();
 		}
